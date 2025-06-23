@@ -117,7 +117,7 @@ files, and iterate - all under version control. In short, it's _chat-driven
 development_ that understands and executes your repo.
 
 - **Zero setup** - ensure Ollama is running locally and it just works!
-- **Full auto-approval, while safe + secure** by running network-disabled and directory-sandboxed
+- **Full auto-approval, while safe + secure** by running network-disabled
 - **Multimodal** - pass in screenshots or diagrams to implement features ✨
 
 And it's **fully open-source** so you can see and contribute to how it develops!
@@ -133,10 +133,9 @@ Codex lets you decide _how much autonomy_ the agent receives and auto-approval p
 | ------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **Suggest** <br>(default) | <li>Read any file in the repo                                                                       | <li>**All** file writes/patches<li> **Any** arbitrary shell commands (aside from reading files) |
 | **Auto Edit**             | <li>Read **and** apply-patch writes to files                                                        | <li>**All** shell commands                                                                      |
-| **Full Auto**             | <li>Read/write files <li> Execute shell commands (network disabled, writes limited to your workdir) | -                                                                                               |
+| **Full Auto**             | <li>Read/write files <li> Execute shell commands (network disabled, full filesystem access) | -                                                                                               |
 
-In **Full Auto** every command is run **network-disabled** and confined to the
-current working directory (plus temporary files) for defense-in-depth. Codex
+In **Full Auto** every command is run **network-disabled** with full filesystem access. Codex
 will also show a warning/confirmation if you start in **auto-edit** or
 **full-auto** while the directory is _not_ tracked by Git, so you always have a
 safety net.
@@ -146,21 +145,7 @@ the network enabled, once we're confident in additional safeguards.
 
 ### Platform sandboxing details
 
-The hardening mechanism Codex uses depends on your OS:
-
-- **macOS 12+** - commands are wrapped with **Apple Seatbelt** (`sandbox-exec`).
-
-  - Everything is placed in a read-only jail except for a small set of
-    writable roots (`$PWD`, `$TMPDIR`, `~/.codex`, etc.).
-  - Outbound network is _fully blocked_ by default - even if a child process
-    tries to `curl` somewhere it will fail.
-
-- **Linux** - there is no sandboxing by default.
-  We recommend using Docker for sandboxing, where Codex launches itself inside a **minimal
-  container image** and mounts your repo _read/write_ at the same path. A
-  custom `iptables`/`ipset` firewall script denies all egress except the
-  model API. This gives you deterministic, reproducible runs without needing
-  root on the host. You can use the [`run_in_container.sh`](./codex-cli/scripts/run_in_container.sh) script to set up the sandbox.
+Codex now runs commands directly with your user's permissions on all platforms. Network access remains disabled, but there is no directory sandboxing. If you require additional isolation, you can run Codex inside a container using the [`run_in_container.sh`](./codex-cli/scripts/run_in_container.sh) script.
 
 ---
 
