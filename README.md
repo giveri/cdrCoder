@@ -294,9 +294,9 @@ In the `providers` object, you can configure multiple AI service providers. Each
 
 | Parameter | Type   | Description                             | Example                       |
 | --------- | ------ | --------------------------------------- | ----------------------------- |
-| `name`    | string | Display name of the provider            | `"OpenAI"`                    |
-| `baseURL` | string | API service URL                         | `"https://api.openai.com/v1"` |
-| `envKey`  | string | Environment variable name (for API key) | `"OPENAI_API_KEY"`            |
+| `name`    | string | Display name of the provider            | `"Ollama"`                    |
+| `baseURL` | string | API service URL                         | `"http://localhost:11434/v1"` |
+| `envKey`  | string | Environment variable name (for API key) | `"OLLAMA_API_KEY"`            |
 
 ### History configuration
 
@@ -364,20 +364,12 @@ You can create a `~/.codex/AGENTS.md` file to define custom guidance for the age
 
 ### Environment variables setup
 
-For each AI provider, you need to set the corresponding API key in your environment variables. For example:
+Ollama typically runs locally and requires no API key. To connect to a remote
+instance that requires authentication, set the following environment variables:
 
 ```bash
-# OpenAI
-export OPENAI_API_KEY="your-api-key-here"
-
-# Azure OpenAI
-export AZURE_OPENAI_API_KEY="your-azure-api-key-here"
-export AZURE_OPENAI_API_VERSION="2025-04-01-preview" (Optional)
-
-# OpenRouter
-export OPENROUTER_API_KEY="your-openrouter-key-here"
-
-# Similarly for other providers
+export OLLAMA_BASE_URL="http://remote.host:11434/v1"
+export OLLAMA_API_KEY="your-api-key-here" # if required by the server
 ```
 
 ---
@@ -385,22 +377,15 @@ export OPENROUTER_API_KEY="your-openrouter-key-here"
 ## FAQ
 
 <details>
-<summary>OpenAI released a model called Codex in 2021 - is this related?</summary>
-
-In 2021, OpenAI released Codex, an AI system designed to generate code from natural language prompts. That original Codex model was deprecated as of March 2023 and is separate from the CLI tool.
-
-</details>
-
-<details>
 <summary>Which models are supported?</summary>
 
-Any model available with [Responses API](https://platform.openai.com/docs/api-reference/responses). The default is `o4-mini`, but pass `--model gpt-4.1` or set `model: gpt-4.1` in your config file to override.
+Any model available to your Ollama server. The default is `o4-mini`, but pass `--model gpt-4.1` or set `model: gpt-4.1` in your config file to override.
 
 </details>
 <details>
 <summary>Why does <code>o3</code> or <code>o4-mini</code> not work for me?</summary>
 
-It's possible that your [API account needs to be verified](https://help.openai.com/en/articles/10910291-api-organization-verification) in order to start streaming responses and seeing chain of thought summaries from the API. If you're still running into issues, please let us know!
+If the model fails to respond, ensure your Ollama server is running and that the requested model is available.
 
 </details>
 
@@ -606,7 +591,7 @@ echo "use flake ../flake.nix#codex-rs" >> .envrc && direnv allow
 
 ## Security & responsible AI
 
-Have you discovered a vulnerability or have concerns about model output? Please e-mail **security@openai.com** and we will respond promptly.
+Have you discovered a vulnerability or have concerns about model output? Please open an issue on GitHub and we will respond promptly.
 
 ---
 
