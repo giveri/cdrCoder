@@ -4,7 +4,7 @@ Codex supports several mechanisms for setting config values:
 
 - Config-specific command-line flags, such as `--model o3` (highest precedence).
 - A generic `-c`/`--config` flag that takes a `key=value` pair, such as `--config model="o3"`.
-  - The key can contain dots to set a value deeper than the root, e.g. `--config model_providers.openai.wire_api="chat"`.
+  - The key can contain dots to set a value deeper than the root, e.g. `--config model_providers.ollama.wire_api="chat"`.
   - Values can contain objects, such as `--config shell_environment_policy.include_only=["PATH", "HOME", "USER"]`.
   - For consistency with `config.toml`, values are in TOML format rather than JSON format, so use `{a = 1, b = 2}` rather than `{"a": 1, "b": 2}`.
   - If `value` cannot be parsed as a valid TOML value, it is treated as a string value. This means that both `-c model="o3"` and `-c model=o3` are equivalent.
@@ -40,38 +40,29 @@ base_url = "http://localhost:11434/v1"
 wire_api = "chat"
 ```
 
-This option defaults to `"openai"` and the corresponding provider is defined as follows:
+This option defaults to `"ollama"` and the corresponding provider is defined as follows:
 
 ```toml
-[model_providers.openai]
-name = "OpenAI"
-base_url = "https://api.openai.com/v1"
-env_key = "OPENAI_API_KEY"
-wire_api = "responses"
+[model_providers.ollama]
+name = "Ollama"
+base_url = "http://localhost:11434/v1"
+wire_api = "chat"
 ```
 
 ## model_providers
 
 This option lets you override and amend the default set of model providers bundled with Codex. This value is a map where the key is the value to use with `model_provider` to select the correspodning provider.
 
-For example, if you wanted to add a provider that uses the OpenAI 4o model via the chat completions API, then you
+For example, if you need to point Codex at a remote Ollama server:
 
 ```toml
 # Recall that in TOML, root keys must be listed before tables.
-model = "gpt-4o"
-model_provider = "openai-chat-completions"
+model = "mistral"
+model_provider = "ollama"
 
-[model_providers.openai-chat-completions]
-# Name of the provider that will be displayed in the Codex UI.
-name = "OpenAI using Chat Completions"
-# The path `/chat/completions` will be amended to this URL to make the POST
-# request for the chat completions.
-base_url = "https://api.openai.com/v1"
-# If `env_key` is set, identifies an environment variable that must be set when
-# using Codex with this provider. The value of the environment variable must be
-# non-empty and will be used in the `Bearer TOKEN` HTTP header for the POST request.
-env_key = "OPENAI_API_KEY"
-# valid values for wire_api are "chat" and "responses".
+[model_providers.ollama]
+name = "Ollama"
+base_url = "http://remote.host:11434/v1"
 wire_api = "chat"
 ```
 
@@ -113,24 +104,20 @@ disable_response_storage = false
 # line, though the `--profile` flag can still be used to override this value.
 profile = "o3"
 
-[model_providers.openai-chat-completions]
-name = "OpenAI using Chat Completions"
-base_url = "https://api.openai.com/v1"
-env_key = "OPENAI_API_KEY"
-wire_api = "chat"
+
 
 [profiles.o3]
 model = "o3"
-model_provider = "openai"
+model_provider = "ollama"
 approval_policy = "never"
 
 [profiles.gpt3]
 model = "gpt-3.5-turbo"
-model_provider = "openai-chat-completions"
+model_provider = "ollama"
 
 [profiles.zdr]
 model = "o3"
-model_provider = "openai"
+model_provider = "ollama"
 approval_policy = "on-failure"
 disable_response_storage = true
 ```
@@ -144,7 +131,7 @@ Users can specify config values at multiple levels. Order of precedence is as fo
 
 ## model_reasoning_effort
 
-If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"codex"`, reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#get-started-with-reasoning), this can be set to:
+If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"codex"`, reasoning is enabled by default when using the Responses API. As explained in the API documentation, this can be set to:
 
 - `"low"`
 - `"medium"` (default)
@@ -158,7 +145,7 @@ model_reasoning_effort = "none"  # disable reasoning
 
 ## model_reasoning_summary
 
-If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"codex"`, reasoning is enabled by default when using the Responses API. As explained in the [OpenAI Platform documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries), this can be set to:
+If the model name starts with `"o"` (as in `"o3"` or `"o4-mini"`) or `"codex"`, reasoning is enabled by default when using the Responses API. As explained in the API documentation, this can be set to:
 
 - `"auto"` (default)
 - `"concise"`

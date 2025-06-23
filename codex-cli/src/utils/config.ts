@@ -85,7 +85,7 @@ export function setApiKey(apiKey: string): void {
   OPENAI_API_KEY = apiKey;
 }
 
-export function getBaseUrl(provider: string = "openai"): string | undefined {
+export function getBaseUrl(provider: string = "ollama"): string | undefined {
   // Check for a PROVIDER-specific override: e.g. OPENAI_BASE_URL or OLLAMA_BASE_URL.
   const envKey = `${provider.toUpperCase()}_BASE_URL`;
   if (process.env[envKey]) {
@@ -100,16 +100,13 @@ export function getBaseUrl(provider: string = "openai"): string | undefined {
     return providerInfo.baseURL;
   }
 
-  // If the provider not found in the providers list and `OPENAI_BASE_URL` is set, use it.
-  if (OPENAI_BASE_URL !== "") {
-    return OPENAI_BASE_URL;
-  }
+  // If the provider not found in the providers list, return undefined.
 
   // We tried.
   return undefined;
 }
 
-export function getApiKey(provider: string = "openai"): string | undefined {
+export function getApiKey(provider: string = "ollama"): string | undefined {
   const config = loadConfig();
   const providersConfig = config.providers ?? providers;
   const providerInfo = providersConfig[provider.toLowerCase()];
@@ -126,10 +123,7 @@ export function getApiKey(provider: string = "openai"): string | undefined {
     return customApiKey;
   }
 
-  // If the provider not found in the providers list and `OPENAI_API_KEY` is set, use it
-  if (OPENAI_API_KEY !== "") {
-    return OPENAI_API_KEY;
-  }
+  // If the provider not found in the providers list, return undefined
 
   // We tried.
   return undefined;

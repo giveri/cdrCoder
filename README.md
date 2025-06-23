@@ -1,7 +1,7 @@
-<h1 align="center">OpenAI Codex CLI</h1>
+<h1 align="center">Codex CLI</h1>
 <p align="center">Lightweight coding agent that runs in your terminal</p>
 
-<p align="center"><code>npm i -g @openai/codex</code></p>
+<p align="center"><code>npm i -g codex</code></p>
 
 ![Codex demo GIF using: codex "explain this codebase to me"](./.github/demo.gif)
 
@@ -33,8 +33,6 @@
   - [Custom instructions](#custom-instructions)
   - [Environment variables setup](#environment-variables-setup)
 - [FAQ](#faq)
-- [Zero data retention (ZDR) usage](#zero-data-retention-zdr-usage)
-- [Codex open source fund](#codex-open-source-fund)
 - [Contributing](#contributing)
   - [Development workflow](#development-workflow)
   - [Git hooks with Husky](#git-hooks-with-husky)
@@ -74,51 +72,17 @@ Help us improve by filing issues or submitting PRs (see the section below for ho
 Install globally:
 
 ```shell
-npm install -g @openai/codex
+npm install -g codex
 ```
 
-Next, set your OpenAI API key as an environment variable:
-
-```shell
-export OPENAI_API_KEY="your-api-key-here"
-```
-
-> **Note:** This command sets the key only for your current terminal session. You can add the `export` line to your shell's configuration file (e.g., `~/.zshrc`) but we recommend setting for the session. **Tip:** You can also place your API key into a `.env` file at the root of your project:
->
-> ```env
-> OPENAI_API_KEY=your-api-key-here
-> ```
->
-> The CLI will automatically load variables from `.env` (via `dotenv/config`).
+Ensure [Ollama](https://ollama.com/) is running locally at `http://localhost:11434`.
+No API key is required.
 
 <details>
-<summary><strong>Use <code>--provider</code> to use other models</strong></summary>
+<summary><strong>Provider configuration</strong></summary>
 
-> Codex also allows you to use other providers that support the OpenAI Chat Completions API. You can set the provider in the config file or use the `--provider` flag. The possible options for `--provider` are:
->
-> - openai (default)
-> - openrouter
-> - azure
-> - gemini
-> - ollama
-> - mistral
-> - deepseek
-> - xai
-> - groq
-> - arceeai
-> - any other provider that is compatible with the OpenAI API
->
-> If you use a provider other than OpenAI, you will need to set the API key for the provider in the config file or in the environment variable as:
->
-> ```shell
-> export <provider>_API_KEY="your-api-key-here"
-> ```
->
-> If you use a provider not listed above, you must also set the base URL for the provider:
->
-> ```shell
-> export <provider>_BASE_URL="https://your-provider-api-base-url"
-> ```
+Ollama is the only supported provider. If you wish to connect to a remote instance,
+set the environment variable `OLLAMA_BASE_URL`.
 
 </details>
 <br />
@@ -152,7 +116,7 @@ ChatGPT-level reasoning **plus** the power to actually run code, manipulate
 files, and iterate - all under version control. In short, it's _chat-driven
 development_ that understands and executes your repo.
 
-- **Zero setup** - bring your OpenAI API key and it just works!
+- **Zero setup** - ensure Ollama is running locally and it just works!
 - **Full auto-approval, while safe + secure** by running network-disabled and directory-sandboxed
 - **Multimodal** - pass in screenshots or diagrams to implement features ✨
 
@@ -195,7 +159,7 @@ The hardening mechanism Codex uses depends on your OS:
   We recommend using Docker for sandboxing, where Codex launches itself inside a **minimal
   container image** and mounts your repo _read/write_ at the same path. A
   custom `iptables`/`ipset` firewall script denies all egress except the
-  OpenAI API. This gives you deterministic, reproducible runs without needing
+  model API. This gives you deterministic, reproducible runs without needing
   root on the host. You can use the [`run_in_container.sh`](./codex-cli/scripts/run_in_container.sh) script to set up the sandbox.
 
 ---
@@ -245,8 +209,7 @@ Run Codex head-less in pipelines. Example GitHub Action step:
 ```yaml
 - name: Update changelog via Codex
   run: |
-    npm install -g @openai/codex
-    export OPENAI_API_KEY="${{ secrets.OPENAI_KEY }}"
+    npm install -g codex
     codex -a auto-edit --quiet "update CHANGELOG for next release"
 ```
 
@@ -264,7 +227,7 @@ DEBUG=true codex
 
 ## Recipes
 
-Below are a few bite-size examples you can copy-paste. Replace the text in quotes with your own task. See the [prompting guide](https://github.com/openai/codex/blob/main/codex-cli/examples/prompting_guide.md) for more tips and usage patterns.
+Below are a few bite-size examples you can copy-paste. Replace the text in quotes with your own task. See the [prompting guide](https://github.com/codex/codex/blob/main/codex-cli/examples/prompting_guide.md) for more tips and usage patterns.
 
 | ✨  | What you type                                                                   | What happens                                                               |
 | --- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
@@ -284,13 +247,13 @@ Below are a few bite-size examples you can copy-paste. Replace the text in quote
 <summary><strong>From npm (Recommended)</strong></summary>
 
 ```bash
-npm install -g @openai/codex
+npm install -g codex
 # or
-yarn global add @openai/codex
+yarn global add codex
 # or
-bun install -g @openai/codex
+bun install -g codex
 # or
-pnpm add -g @openai/codex
+pnpm add -g codex
 ```
 
 </details>
@@ -300,7 +263,7 @@ pnpm add -g @openai/codex
 
 ```bash
 # Clone the repository and navigate to the CLI package
-git clone https://github.com/openai/codex.git
+git clone https://github.com/codex/codex.git
 cd codex/codex-cli
 
 # Enable corepack
@@ -335,7 +298,7 @@ Codex configuration files can be placed in the `~/.codex/` directory, supporting
 
 | Parameter           | Type    | Default    | Description                      | Available Options                                                                              |
 | ------------------- | ------- | ---------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `model`             | string  | `o4-mini`  | AI model to use                  | Any model name supporting OpenAI API                                                           |
+| `model`             | string  | `o4-mini`  | AI model to use                  | Any model name supporting the API                                                           |
 | `approvalMode`      | string  | `suggest`  | AI assistant's permission mode   | `suggest` (suggestions only)<br>`auto-edit` (automatic edits)<br>`full-auto` (fully automatic) |
 | `fullAutoErrorMode` | string  | `ask-user` | Error handling in full-auto mode | `ask-user` (prompt for user input)<br>`ignore-and-continue` (ignore and proceed)               |
 | `notify`            | boolean | `true`     | Enable desktop notifications     | `true`/`false`                                                                                 |
@@ -384,62 +347,17 @@ notify: true
 
 ### Full configuration example
 
-Below is a comprehensive example of `config.json` with multiple custom providers:
+Below is a simple example of `config.json` using Ollama:
 
 ```json
 {
-  "model": "o4-mini",
-  "provider": "openai",
+  "model": "mistral",
+  "provider": "ollama",
   "providers": {
-    "openai": {
-      "name": "OpenAI",
-      "baseURL": "https://api.openai.com/v1",
-      "envKey": "OPENAI_API_KEY"
-    },
-    "azure": {
-      "name": "AzureOpenAI",
-      "baseURL": "https://YOUR_PROJECT_NAME.openai.azure.com/openai",
-      "envKey": "AZURE_OPENAI_API_KEY"
-    },
-    "openrouter": {
-      "name": "OpenRouter",
-      "baseURL": "https://openrouter.ai/api/v1",
-      "envKey": "OPENROUTER_API_KEY"
-    },
-    "gemini": {
-      "name": "Gemini",
-      "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai",
-      "envKey": "GEMINI_API_KEY"
-    },
     "ollama": {
       "name": "Ollama",
       "baseURL": "http://localhost:11434/v1",
       "envKey": "OLLAMA_API_KEY"
-    },
-    "mistral": {
-      "name": "Mistral",
-      "baseURL": "https://api.mistral.ai/v1",
-      "envKey": "MISTRAL_API_KEY"
-    },
-    "deepseek": {
-      "name": "DeepSeek",
-      "baseURL": "https://api.deepseek.com",
-      "envKey": "DEEPSEEK_API_KEY"
-    },
-    "xai": {
-      "name": "xAI",
-      "baseURL": "https://api.x.ai/v1",
-      "envKey": "XAI_API_KEY"
-    },
-    "groq": {
-      "name": "Groq",
-      "baseURL": "https://api.groq.com/openai/v1",
-      "envKey": "GROQ_API_KEY"
-    },
-    "arceeai": {
-      "name": "ArceeAI",
-      "baseURL": "https://conductor.arcee.ai/v1",
-      "envKey": "ARCEEAI_API_KEY"
     }
   },
   "history": {
@@ -515,27 +433,6 @@ Not directly. It requires [Windows Subsystem for Linux (WSL2)](https://learn.mic
 </details>
 
 ---
-
-## Zero data retention (ZDR) usage
-
-Codex CLI **does** support OpenAI organizations with [Zero Data Retention (ZDR)](https://platform.openai.com/docs/guides/your-data#zero-data-retention) enabled. If your OpenAI organization has Zero Data Retention enabled and you still encounter errors such as:
-
-```
-OpenAI rejected the request. Error details: Status: 400, Code: unsupported_parameter, Type: invalid_request_error, Message: 400 Previous response cannot be used for this organization due to Zero Data Retention.
-```
-
-You may need to upgrade to a more recent version with: `npm i -g @openai/codex@latest`
-
----
-
-## Codex open source fund
-
-We're excited to launch a **$1 million initiative** supporting open source projects that use Codex CLI and other OpenAI models.
-
-- Grants are awarded up to **$25,000** API credits.
-- Applications are reviewed **on a rolling basis**.
-
-**Interested? [Apply here](https://openai.com/form/codex-open-source-fund/).**
 
 ---
 

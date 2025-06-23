@@ -76,7 +76,7 @@ const cli = meow(
 
     -h, --help                      Show usage and exit
     -m, --model <model>             Model to use for completions (default: codex-mini-latest)
-    -p, --provider <provider>       Provider to use for completions (default: openai)
+    -p, --provider <provider>       Provider to use for completions (default: ollama)
     -i, --image <path>              Path(s) to image files to include as input
     -v, --view <rollout>            Inspect a previously saved rollout instead of starting a session
     --history                       Browse previous sessions
@@ -292,7 +292,7 @@ let config = loadConfig(undefined, undefined, {
 let prompt = cli.input[0];
 const model = cli.flags.model ?? config.model;
 const imagePaths = cli.flags.image;
-const provider = cli.flags.provider ?? config.provider ?? "openai";
+const provider = cli.flags.provider ?? config.provider ?? "ollama";
 
 const client = {
   issuer: "https://auth.openai.com",
