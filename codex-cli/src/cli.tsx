@@ -36,11 +36,10 @@ import {
   loadConfig,
   PRETTY_PRINT,
   INSTRUCTIONS_FILEPATH,
+  getApiKey,
 } from "./utils/config";
-import {
-  getApiKey as fetchApiKey,
-  maybeRedeemCredits,
-} from "./utils/get-api-key";
+// Authentication helpers removed - Ollama does not require interactive login
+// or credit redemption.
 import { createInputItem } from "./utils/input-utils";
 import { initLogger } from "./utils/logger/log";
 import { isModelSupportedForResponses } from "./utils/model-utils.js";
@@ -76,7 +75,7 @@ const cli = meow(
 
     -h, --help                      Show usage and exit
     -m, --model <model>             Model to use for completions (default: codex-mini-latest)
-    -p, --provider <provider>       Provider to use for completions (default: openai)
+    -p, --provider <provider>       Provider to use for completions (default: ollama)
     -i, --image <path>              Path(s) to image files to include as input
     -v, --view <rollout>            Inspect a previously saved rollout instead of starting a session
     --history                       Browse previous sessions
@@ -292,125 +291,20 @@ let config = loadConfig(undefined, undefined, {
 let prompt = cli.input[0];
 const model = cli.flags.model ?? config.model;
 const imagePaths = cli.flags.image;
-const provider = cli.flags.provider ?? config.provider ?? "openai";
+const provider = cli.flags.provider ?? config.provider ?? "ollama";
 
-const client = {
-  issuer: "https://auth.openai.com",
-  client_id: "app_EMoamEEZ73f0CkXaXp7hrann",
-};
-
-let apiKey = "";
-let savedTokens:
-  | {
-      id_token?: string;
-      access_token?: string;
-      refresh_token: string;
-    }
-  | undefined;
-
-// Try to load existing auth file if present
-try {
-  const home = os.homedir();
-  const authDir = path.join(home, ".codex");
-  const authFile = path.join(authDir, "auth.json");
-  if (fs.existsSync(authFile)) {
-    const data = JSON.parse(fs.readFileSync(authFile, "utf-8"));
-    savedTokens = data.tokens;
-    const lastRefreshTime = data.last_refresh
-      ? new Date(data.last_refresh).getTime()
-      : 0;
-    const expired = Date.now() - lastRefreshTime > 28 * 24 * 60 * 60 * 1000;
-    if (data.OPENAI_API_KEY && !expired) {
-      apiKey = data.OPENAI_API_KEY;
-    }
-  }
-} catch {
-  // ignore errors
-}
-
-// Get provider-specific API key if not OpenAI
-if (provider.toLowerCase() !== "openai") {
-  const providerInfo = providers[provider.toLowerCase()];
-  if (providerInfo) {
-    const providerApiKey = process.env[providerInfo.envKey];
-    if (providerApiKey) {
-      apiKey = providerApiKey;
-    }
-  }
-}
-
-// Only proceed with OpenAI auth flow if:
-// 1. Provider is OpenAI and no API key is set, or
-// 2. Login flag is explicitly set
-if (provider.toLowerCase() === "openai" && !apiKey) {
-  if (cli.flags.login) {
-    apiKey = await fetchApiKey(client.issuer, client.client_id);
-    try {
-      const home = os.homedir();
-      const authDir = path.join(home, ".codex");
-      const authFile = path.join(authDir, "auth.json");
-      if (fs.existsSync(authFile)) {
-        const data = JSON.parse(fs.readFileSync(authFile, "utf-8"));
-        savedTokens = data.tokens;
-      }
-    } catch {
-      /* ignore */
-    }
-  } else {
-    apiKey = await fetchApiKey(client.issuer, client.client_id);
-  }
-}
-
-// Ensure the API key is available as an environment variable for legacy code
-process.env["OPENAI_API_KEY"] = apiKey;
-
-// Only attempt credit redemption for OpenAI provider
-if (cli.flags.free && provider.toLowerCase() === "openai") {
-  // eslint-disable-next-line no-console
-  console.log(`${chalk.bold("codex --free")} attempting to redeem credits...`);
-  if (!savedTokens?.refresh_token) {
-    apiKey = await fetchApiKey(client.issuer, client.client_id, true);
-    // fetchApiKey includes credit redemption as the end of the flow
-  } else {
-    await maybeRedeemCredits(
-      client.issuer,
-      client.client_id,
-      savedTokens.refresh_token,
-      savedTokens.id_token,
-    );
-  }
-}
-
-// Set of providers that don't require API keys
-const NO_API_KEY_REQUIRED = new Set(["ollama"]);
+// Fetch provider-specific API key. Ollama typically does not require one.
+let apiKey = getApiKey(provider) ?? "";
 
 // Skip API key validation for providers that don't require an API key
+const NO_API_KEY_REQUIRED = new Set(["ollama"]);
 if (!apiKey && !NO_API_KEY_REQUIRED.has(provider.toLowerCase())) {
   // eslint-disable-next-line no-console
   console.error(
     `\n${chalk.red(`Missing ${provider} API key.`)}\n\n` +
       `Set the environment variable ${chalk.bold(
         `${provider.toUpperCase()}_API_KEY`,
-      )} ` +
-      `and re-run this command.\n` +
-      `${
-        provider.toLowerCase() === "openai"
-          ? `You can create a key here: ${chalk.bold(
-              chalk.underline("https://platform.openai.com/account/api-keys"),
-            )}\n`
-          : provider.toLowerCase() === "azure"
-            ? `You can create a ${chalk.bold(
-                `${provider.toUpperCase()}_OPENAI_API_KEY`,
-              )} ` +
-              `in Azure AI Foundry portal at ${chalk.bold(chalk.underline("https://ai.azure.com"))}.\n`
-            : provider.toLowerCase() === "gemini"
-              ? `You can create a ${chalk.bold(
-                  `${provider.toUpperCase()}_API_KEY`,
-                )} ` + `in the ${chalk.bold(`Google AI Studio`)}.\n`
-              : `You can create a ${chalk.bold(
-                  `${provider.toUpperCase()}_API_KEY`,
-                )} ` + `in the ${chalk.bold(`${provider}`)} dashboard.\n`
-      }`,
+      )} and re-run this command.\n`,
   );
   process.exit(1);
 }
@@ -458,16 +352,10 @@ if (config.flexMode) {
   }
 }
 
-if (
-  !(await isModelSupportedForResponses(provider, config.model)) &&
-  (!provider || provider.toLowerCase() === "openai")
-) {
+if (!(await isModelSupportedForResponses(provider, config.model))) {
   // eslint-disable-next-line no-console
   console.error(
-    `The model "${config.model}" does not appear in the list of models ` +
-      `available to your account. Double-check the spelling (use\n` +
-      `  openai models list\n` +
-      `to see the full list) or choose another model with the --model flag.`,
+    `The model "${config.model}" does not appear to be available for provider "${provider}".`,
   );
   process.exit(1);
 }

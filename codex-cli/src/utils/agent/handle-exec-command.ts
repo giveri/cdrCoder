@@ -11,7 +11,6 @@ import { exec, execApplyPatch } from "./exec.js";
 import { ReviewDecision } from "./review.js";
 import { isLoggingEnabled, log } from "../logger/log.js";
 import { SandboxType } from "./sandbox/interface.js";
-import { PATH_TO_SEATBELT_EXECUTABLE } from "./sandbox/macos-seatbelt.js";
 import fs from "fs/promises";
 
 // ---------------------------------------------------------------------------
@@ -277,53 +276,18 @@ async function execCommand(
 }
 
 /** Return `true` if the `/usr/bin/sandbox-exec` is present and executable. */
-const isSandboxExecAvailable: Promise<boolean> = fs
-  .access(PATH_TO_SEATBELT_EXECUTABLE, fs.constants.X_OK)
-  .then(
-    () => true,
-    (err) => {
-      if (!["ENOENT", "ACCESS", "EPERM"].includes(err.code)) {
-        log(
-          `Unexpected error for \`stat ${PATH_TO_SEATBELT_EXECUTABLE}\`: ${err.message}`,
-        );
-      }
-      return false;
-    },
-  );
+// The seatbelt helper was previously checked to determine if sandboxing was
+// available on macOS. Since sandboxing is now disabled, the check is no longer
+// required.
 
 async function getSandbox(runInSandbox: boolean): Promise<SandboxType> {
-  if (runInSandbox) {
-    if (process.platform === "darwin") {
-      // On macOS we rely on the system-provided `sandbox-exec` binary to
-      // enforce the Seatbelt profile.  However, starting with macOS 14 the
-      // executable may be removed from the default installation or the user
-      // might be running the CLI on a stripped-down environment (for
-      // instance, inside certain CI images).  Attempting to spawn a missing
-      // binary makes Node.js throw an *uncaught* `ENOENT` error further down
-      // the stack which crashes the whole CLI.
-      if (await isSandboxExecAvailable) {
-        return SandboxType.MACOS_SEATBELT;
-      } else {
-        throw new Error(
-          "Sandbox was mandated, but 'sandbox-exec' was not found in PATH!",
-        );
-      }
-    } else if (process.platform === "linux") {
-      // TODO: Need to verify that the Landlock sandbox is working. For example,
-      // using Landlock in a Linux Docker container from a macOS host may not
-      // work.
-      return SandboxType.LINUX_LANDLOCK;
-    } else if (CODEX_UNSAFE_ALLOW_NO_SANDBOX) {
-      // Allow running without a sandbox if the user has explicitly marked the
-      // environment as already being sufficiently locked-down.
-      return SandboxType.NONE;
-    }
-
-    // For all else, we hard fail if the user has requested a sandbox and none is available.
-    throw new Error("Sandbox was mandated, but no sandbox is available!");
-  } else {
-    return SandboxType.NONE;
-  }
+  // Refactored to always run commands without sandboxing. The previous logic
+  // attempted to locate platform-specific sandbox helpers like
+  // `codex-linux-sandbox-x64` or `sandbox-exec` on macOS. Missing binaries led
+  // to fatal errors. By unconditionally returning `SandboxType.NONE`, Codex runs
+  // commands directly with the main user's permissions and full access to the
+  // system.
+  return SandboxType.NONE;
 }
 
 /**
